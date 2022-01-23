@@ -42,7 +42,7 @@ finance_api_data_to_s3 = FinanceDataToS3Operator(
     aws_credentials_id='aws_credentials',
     s3_bucket='s3://rrrfinance/',
     s3_region='eu-central-1',
-    start_date='{{ ds }}'
+    end_date='{{ ds }}'
 )
 
 end_operator = DummyOperator(task_id='Stop_execution', dag=dag)
