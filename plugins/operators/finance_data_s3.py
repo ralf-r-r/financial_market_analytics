@@ -1,17 +1,33 @@
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from airflow.contrib.hooks.aws_hook import AwsHook
-from yahoo_fin import stock_info as si
-import pandas as pd
-import boto3
-from helpers.tickers import df_constant_tickers
-from helpers.utils import upload_df_to_S3
 from typing import List
 import yfinance as yf
 import datetime
 from datetime import datetime, timedelta
 import re
 from pytickersymbols import PyTickerSymbols
+import boto3
+from io import BytesIO, StringIO
+import pandas as pd
+
+
+def create_constant_ticker_df():
+    constant_tickers = [
+        {"symbol": "ETH-USD", "name": "Ethereum USD", "country": None, "indices": None},
+        {"symbol": "BTC-USD", "name": "Bitcoin USD", "country": None, "indices": None},
+        {"symbol": "^GSPC", "name": "S&P 500 USD", "country": None, "indices": None},
+        {"symbol": "FEZ", "name": "SPDR EURO STOXX 50 ETF USD", "country": None, "indices": None},
+        {"symbol": "GC=F", "name": "Gold USD", "country": None, "indices": None},
+        {"symbol": "SI=F", "name": "Silver USD", "country": None, "indices": None},
+        {"symbol": "EURUSD=X", "name": "EUR USD", "country": None, "indices": None},
+        {"symbol": "NOKUSD=X", "name": "Norwegian Crowns USD", "country": None, "indices": None},
+        {"symbol": "SEKUSD=X", "name": "Scwedish Crowns USD", "country": None, "indices": None}
+    ]
+
+    dfp_constant_tickers = pd.DataFrame(constant_tickers)
+    return dfp_constant_tickers
+
 
 def subtract_months_from_date(dt, n):
     date_object = dt
@@ -21,6 +37,16 @@ def subtract_months_from_date(dt, n):
         date_object = date_object.replace(day=1)
 
     return date_object
+
+
+def month_to_quarter(month: int) -> str:
+    """
+    Converts the month number of a date to a string for the quarter e.g. Q4
+    :param month: int, month of the date
+    :return: str, the quarter of the year, e.g. Q2
+    """
+    quarter = (month - 1) // 3 + 1
+    return "Q" + str(quarter)
 
 
 def get_tickers() -> pd.DataFrame:
@@ -62,7 +88,7 @@ def get_tickers() -> pd.DataFrame:
     dfp_tickers = dfp_tickers[cols]
 
     # combine the data from pytickers with hardcoded tickers
-    df = pd.concat([df_constant_tickers, dfp_tickers])
+    df = pd.concat([create_constant_ticker_df(), dfp_tickers])
     return df
 
 
@@ -77,7 +103,7 @@ def get_all_stocks_data(tickers: List[str], start_date: str, end_date: str) -> p
     """
     n_tickers = len(tickers)
     iterations = 2
-    step_size = int(n_tickers / iterations-1)
+    step_size = int(n_tickers / iterations - 1)
 
     df_list = []
     for k in range(0, iterations):
@@ -108,7 +134,7 @@ def get_all_stocks_data(tickers: List[str], start_date: str, end_date: str) -> p
     df_ts["year"] = df_ts["Date"].str.split("-", expand=True)[0].astype(int)
     df_ts["month"] = df_ts["Date"].str.split("-", expand=True)[1].astype(int)
     df_ts["day"] = df_ts["Date"].str.split("-", expand=True)[2].astype(int)
-    df_ts = df_ts.drop(columns= ["Date"])
+    df_ts = df_ts.drop(columns=["Date"])
     df_ts = df_ts.dropna()
 
     renamed_columns = {
@@ -120,6 +146,28 @@ def get_all_stocks_data(tickers: List[str], start_date: str, end_date: str) -> p
     return df_ts
 
 
+def upload_df_to_S3(df: pd.DataFrame,
+                    aws_access_key_id: str,
+                    aws_secret_access_key: str,
+                    region: str,
+                    bucket: str,
+                    key: str):
+
+    #csv_buffer = BytesIO()
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer, header=True, index=False)
+    csv_buffer.seek(0)
+
+    s3_client = boto3.client('s3',
+                             aws_access_key_id=aws_access_key_id,
+                             aws_secret_access_key=aws_secret_access_key,
+                             region_name=region)
+
+    #s3_client.upload_fileobj(csv_buffer, bucket, key)
+    s3_client.put_object(Bucket=bucket, Body=csv_buffer.getvalue(), Key=key)
+    return None
+
+
 class FinanceDataToS3Operator(BaseOperator):
     ui_color = '#358140'
     template_fields = ('date',)
@@ -129,7 +177,7 @@ class FinanceDataToS3Operator(BaseOperator):
                  aws_credentials_id: str,
                  s3_bucket: str,
                  s3_region: str,
-                 end_date: str,
+                 date: str,
                  *args,
                  **kwargs):
         """
@@ -143,16 +191,16 @@ class FinanceDataToS3Operator(BaseOperator):
         self.aws_credentials_id = aws_credentials_id
         self.s3_bucket = s3_bucket
         self.s3_region = s3_region
-        self.end_date = end_date
+        self.date = date
 
     def execute(self, context):
-        # convert date strings
-        end_date = self.end_date.format(**context)
-        end_date_object = datetime.datetime.strptime("2021-01-01", "%Y-%m-%d")
+        # create date strings for start and end dates
+        end_date_str = self.date.format(**context)
+        end_date_object = datetime.strptime(end_date_str, "%Y-%m-%d")
         start_date_object = subtract_months_from_date(end_date_object, 3)
-        start_date = start_date_object.strftime("%Y-%m-%d")
-        quarter = start_date_object.quarter
-        year, month, day = start_date.split("-")
+        start_date_str = start_date_object.strftime("%Y-%m-%d")
+        year, month, day = start_date_str.split("-")
+        quarter = month_to_quarter(int(month))
 
         # get credentials
         aws_hook = AwsHook(self.aws_credentials_id)
@@ -163,7 +211,7 @@ class FinanceDataToS3Operator(BaseOperator):
         dfp_tickers = get_tickers()
 
         self.log.info('starting to upload stock tickers data to s3')
-        s3_key_tickers = "/tickers/" + year + "_" + quarter + "_tickers.csv"
+        s3_key_tickers = "tickers/" + year + "-" + quarter + "-tickers.csv"
         upload_df_to_S3(df=dfp_tickers,
                         aws_access_key_id=credentials.access_key,
                         aws_secret_access_key=credentials.secret_key,
@@ -176,12 +224,12 @@ class FinanceDataToS3Operator(BaseOperator):
         # get stock price and volume data from yfinance and upload it to s3
         self.log.info('starting to get stock price and volume data from from api with yfinance')
         df_price_volume = get_all_stocks_data(tickers=list(dfp_tickers["symbol"].unique()),
-                                              start_date=start_date,
-                                              end_date=end_date)
+                                              start_date=start_date_str,
+                                              end_date=end_date_str)
 
         self.log.info('starting to upload stock price and volume data to s3')
 
-        s3_key_tickers = "/spot_prices/" + year + "_" + quarter + "_" + "spot_prices.csv"
+        s3_key_tickers = "spot_prices/" + year + "-" + quarter + "-" + "spot_prices.csv"
         upload_df_to_S3(df=df_price_volume,
                         aws_access_key_id=credentials.access_key,
                         aws_secret_access_key=credentials.secret_key,
