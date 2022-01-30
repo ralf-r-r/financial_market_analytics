@@ -153,7 +153,6 @@ def upload_df_to_S3(df: pd.DataFrame,
                     bucket: str,
                     key: str):
 
-    #csv_buffer = BytesIO()
     csv_buffer = StringIO()
     df.to_csv(csv_buffer, header=True, index=False)
     csv_buffer.seek(0)
@@ -163,7 +162,6 @@ def upload_df_to_S3(df: pd.DataFrame,
                              aws_secret_access_key=aws_secret_access_key,
                              region_name=region)
 
-    #s3_client.upload_fileobj(csv_buffer, bucket, key)
     s3_client.put_object(Bucket=bucket, Body=csv_buffer.getvalue(), Key=key)
     return None
 

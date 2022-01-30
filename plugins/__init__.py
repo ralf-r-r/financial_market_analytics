@@ -5,8 +5,9 @@ from airflow.plugins_manager import AirflowPlugin
 import operators
 
 # Defining the plugin class
-class UdacityPlugin(AirflowPlugin):
+class FinancePlugin(AirflowPlugin):
     name = "udacity_plugin"
     operators = [
-        operators.FinanceDataToS3Operator
+        operators.FinanceDataToS3Operator,
+        operators.StageToRedshiftOperator
     ]
