@@ -26,6 +26,7 @@ class StageToRedshiftOperator(BaseOperator):
                  date: str,
                  s3_key: str = '',
                  s3_region: str = 'eu-central-1',
+                 use_date=True,
                  *args,
                  **kwargs):
         """
@@ -45,6 +46,7 @@ class StageToRedshiftOperator(BaseOperator):
         self.s3_key = s3_key
         self.s3_region = s3_region
         self.date = date
+        self.use_date = use_date
 
     def execute(self, context):
 
@@ -55,8 +57,9 @@ class StageToRedshiftOperator(BaseOperator):
 
         # set bucket path
         bucket_path = self.s3_bucket + self.s3_key
-        bucket_path = bucket_path.replace("year",str(year))
-        bucket_path = bucket_path.replace("quarter", quarter)
+        if self.use_date:
+            bucket_path = bucket_path.replace("year",str(year))
+            bucket_path = bucket_path.replace("quarter", quarter)
 
         self.log.info('starting staging from ' + bucket_path + ' to ' + self.rs_target_table)
 
@@ -64,6 +67,11 @@ class StageToRedshiftOperator(BaseOperator):
         aws_hook = AwsHook(self.aws_credentials_id)
         credentials = aws_hook.get_credentials()
 
+        # - delete rows in the staging table
+        delete_rows = """DELETE {}""".format(self.rs_target_table)
+        redshift.run(delete_rows)
+
+        # - load new data from s3 bucket into the staging table
         staging_copy = """
                 COPY {}
                 FROM '{}'
@@ -74,6 +82,7 @@ class StageToRedshiftOperator(BaseOperator):
                 EMPTYASNULL
                 BLANKSASNULL
                 COMPUPDATE OFF
+                IGNOREHEADER 1
         """
 
         staging_copy_formatted = staging_copy.format(self.rs_target_table,

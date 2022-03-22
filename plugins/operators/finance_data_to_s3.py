@@ -108,13 +108,14 @@ def get_all_stocks_data(tickers: List[str], start_date: str, end_date: str) -> p
     df_list = []
     for k in range(0, iterations):
         print(k, "of", iterations)
-        tickers_tmp = tickers[k:k + step_size]
+        tickers_tmp = tickers[k*step_size: (k +1)*step_size]
         if len(tickers_tmp) > 0:
             sep = " "
             tickers_string = sep.join(tickers_tmp)
             df_tmp = yf.download(tickers_string,
                                  start=start_date,
                                  end=end_date,
+                                 progress = False,
                                  group_by='ticker',
                                  interval="1d")
             df_list.append(df_tmp)
@@ -141,9 +142,16 @@ def get_all_stocks_data(tickers: List[str], start_date: str, end_date: str) -> p
         "Close": "closing_price",
         "Volume": "volume"
     }
-
+    # rename columns
     df_ts = df_ts.rename(columns=renamed_columns)
-    return df_ts
+
+    # sort columns
+    columns_sorted = ["symbol","year","month","day","closing_price","volume"]
+    df_ts = df_ts [columns_sorted]
+
+    # remove duplicates
+    df_return = df_ts.drop_duplicates(subset = ["symbol","year","month","day"])
+    return df_return
 
 
 def upload_df_to_S3(df: pd.DataFrame,
