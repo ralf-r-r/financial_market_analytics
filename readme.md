@@ -102,4 +102,4 @@ Admin -> connections -> create:
 - Password: Passwort set for aws reshift
 
 ## 6.4. Other
--**Check for load errors in redshift:** ```"SELECT * FROM stl_load_errors;"```
+- **Check for load errors in redshift:** ```"SELECT * FROM stl_load_errors;"```
