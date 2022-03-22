@@ -50,6 +50,7 @@ Link: https://pypi.org/project/yfinance/
 
 ### 2.3. Money Supply Data
 The Money supply data was downloaded from https://stats.oecd.org/. The data is stored as a csv-file in the S3 bucket.
+The value column is in percent. A value of 100 corresponds to the money supply of the year 2015.
 
 ![image_1](img/money_supply_example.png)
 
