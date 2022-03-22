@@ -13,9 +13,9 @@ protect once purchasing power over time. The data might also allow to identify i
 The goal is to create data tables for stock prices, financial data of companies and money supply (money printing).
 The tables will be joined on time and company name columns. 
 For certain analysis the stock prices table will be grouped by time and the stock valuations will be averaged over
-all companies in a certain index such as SP500.
+all companies in a certain index such as the S&P500.
 
-### 1.3. How is Airflow Cncorporated Into the Project?
+### 1.3. How is Airflow Incorporated Into the Project?
 Airflow is used in the project to read the latest stock prices from the yahoo finance API. 
 The DAG runs once every quarter because the project tries to answer macro economical questions and 
 those findings do not change on a daily basis.
@@ -62,42 +62,44 @@ The size of the dataset is 2.647.073 rows.
 
 # 3. Data Model and Pipeline
 
+# 4. Results
 
-# 4. Scenarios
+# 5. Scenarios
 
-# 5. Airflow Project
+# 6. Airflow Project
 
-### Tutorial for local installation
+## 6.1 Local installation for Airflow
+- **Installation** A tutorial for  installing airflow locally can be found here:
 https://airflow-tutorial.readthedocs.io/en/latest/first-airflow.html
 
-### Start the webserver
-airflow webserver -p 8080
+- **Start the webserver**: ```airflow webserver -p 8080```
+- **Start the scheduler**: ```airflow scheduler```
+- 
+## 6.2 Configuring AWS
 
-### Start the scheduler
-airflow scheduler
+### 6.2.1 Configure AWS Permissions:
+**create a new user**: IAM -> create a user -> programmatic access -> store the credentials. These are needed to configure airflow later on.
+**S3 and redshift permission:**: Provide the user with s3 and redshift access permissions
 
-### configure AWS permissions:
-IAM -> create a user -> programmatic access -> give the user s3 and redshift access
+### 6.2.2 Configure the Redshift Cluster:
+Got to redshift and create a new cluster. You need additoin configurations to be able to access the cluster from your local airflow installation:
+- **Newtwork and security:** publicly accessible : enable
+- **Access credentials**: Set a username and a password. These are needed to configure the airflow redshift connection in the next step
 
-### configure redshift cluster:
+## 6.3 Configure Airflow:
 
-AWS -> redshift -> create cluster
-Additional configurations:
--Newtwork and security: add redshift security group to VPC security groups, publicly accessible : enable
--> create cluster
+### 6.3.1 Configure AWS Access Credentials
+Admin -> connections -> aws_credentials -> enter the user credentials
 
-### configure airflow:
-Edit redshift connection:
+### 6.3.1 Configure AWS redshift connection
 
-Admin -> connections -> create
+Admin -> connections -> create:
 - Conn Id: redshift
 - Conn type: Postgres
-- Host: from aws postgres endpoint without port etc
-- Schema dev
+- Host: Copy passte from aws postgres endpoint. Remove port and schema.
+- Schema: dev
 - login: username as configured for aws redshift
-- passsword: Passwort set for aws reshift
+- Password: Passwort set for aws reshift
 
-### Additional
-
-check for load errors in redshift:
-"SELECT * FROM stl_load_errors;"
+### 6.4 Other
+-**Check for load errors in redshift:** ```"SELECT * FROM stl_load_errors;"```
