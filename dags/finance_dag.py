@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
+from airflow.sensors.external_task_sensor import ExternalTaskSensor
 from operators import (FinanceDataToS3Operator, StageToRedshiftOperator, LoadRedShiftOperator, DataQualityOperator)
 from helpers import SqlQueries, create_sql_checks
 
@@ -8,12 +9,14 @@ from helpers import SqlQueries, create_sql_checks
 default_args = {
     'owner': 'ralf',
     'start_date': datetime(2000, 1, 1),
-    'end_date': datetime(2021, 12, 1),
+    'end_date': datetime(2021, 12, 31),
     'retries': 3,
     'retry_delay': timedelta(minutes=5),
     'email_on_retry': False,
-    'catchup': True,
-    'depends_on_past': False
+    'catchup': False,
+    'depends_on_past': True,
+    'wait_for_downstream': True,
+    'max_active_runs': 1
 }
 
 dag = DAG('01_finance_dag',
@@ -33,7 +36,6 @@ finance_api_data_to_s3 = FinanceDataToS3Operator(
     s3_bucket='rrrfinance',
     s3_region='eu-central-1',
     date='{{ ds }}',
-    provide_context=True
 )
 
 # - define staging operators
@@ -47,8 +49,8 @@ stage_tickers_to_redshift = StageToRedshiftOperator(
     s3_key="tickers/year-quarter-tickers.csv",
     s3_region='eu-central-1',
     date='{{ ds }}',
-    provide_context=True,
-    use_date=True
+    use_date=True,
+    truncate_table=False
 )
 
 stage_spot_prices_to_redshift = StageToRedshiftOperator(
@@ -61,8 +63,8 @@ stage_spot_prices_to_redshift = StageToRedshiftOperator(
     s3_key="spot_prices/year-quarter-spot_prices.csv",
     s3_region='eu-central-1',
     date='{{ ds }}',
-    provide_context=True,
-    use_date=True
+    use_date=True,
+    truncate_table=False
 )
 
 stage_fundamentals_to_redshift = StageToRedshiftOperator(
@@ -75,8 +77,8 @@ stage_fundamentals_to_redshift = StageToRedshiftOperator(
     s3_key="fundamentals/SHARADAR_SF1.csv",
     s3_region='eu-central-1',
     date='{{ ds }}',
-    provide_context=True,
-    use_date=False
+    use_date=False,
+    truncate_table=True,
 )
 
 stage_money_supply_to_redshift = StageToRedshiftOperator(
@@ -89,8 +91,8 @@ stage_money_supply_to_redshift = StageToRedshiftOperator(
     s3_key="m3_money_supply/m3_money_supply.csv",
     s3_region='eu-central-1',
     date='{{ ds }}',
-    provide_context=True,
-    use_date=False
+    use_date=False,
+    truncate_table=True
 )
 
 # - define fact and dimension operators
@@ -100,8 +102,7 @@ load_spot_prices = LoadRedShiftOperator(
     rs_conn_id='redshift',
     prior_truncate=False,
     rs_table_name='spot_prices',
-    sql_insert=SqlQueries.spot_prices_insert,
-    provide_context=True
+    sql_insert=SqlQueries.spot_prices_insert
 )
 
 load_fundamentals = LoadRedShiftOperator(
@@ -110,8 +111,7 @@ load_fundamentals = LoadRedShiftOperator(
     rs_conn_id='redshift',
     prior_truncate=False,
     rs_table_name='fundamentals',
-    sql_insert=SqlQueries.fundamentals_insert,
-    provide_context=True
+    sql_insert=SqlQueries.fundamentals_insert
 )
 
 load_tickers = LoadRedShiftOperator(
@@ -120,8 +120,7 @@ load_tickers = LoadRedShiftOperator(
     rs_conn_id='redshift',
     prior_truncate=False,
     rs_table_name='ticker',
-    sql_insert=SqlQueries.tickers_insert,
-    provide_context=True
+    sql_insert=SqlQueries.tickers_insert
 )
 
 load_m3_money_supply = LoadRedShiftOperator(
@@ -130,8 +129,7 @@ load_m3_money_supply = LoadRedShiftOperator(
     rs_conn_id='redshift',
     prior_truncate=False,
     rs_table_name='m3_money_supply',
-    sql_insert=SqlQueries.m3_money_supply_insert,
-    provide_context=True
+    sql_insert=SqlQueries.m3_money_supply_insert
 )
 
 # - define data quality checks
@@ -147,7 +145,9 @@ run_quality_checks = DataQualityOperator(
 end_operator = DummyOperator(task_id='Stop_execution', dag=dag)
 
 # - define task dependencies
+
 start_operator >> finance_api_data_to_s3
+
 finance_api_data_to_s3 >> [stage_tickers_to_redshift,
                            stage_spot_prices_to_redshift,
                            stage_fundamentals_to_redshift,

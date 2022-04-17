@@ -28,7 +28,7 @@ class LoadRedShiftOperator(BaseOperator):
         self.sql_insert = sql_insert
 
     def execute(self, context):
-        self.log.info('LoadFactOperator: Starting to copy data into ' + self.rs_table_name)
+        self.log.info('LoadRedShiftOperator: Starting to copy data into ' + self.rs_table_name)
 
         redshift = PostgresHook(postgres_conn_id=self.rs_conn_id)
 
@@ -38,4 +38,4 @@ class LoadRedShiftOperator(BaseOperator):
         else:
             redshift.run(self.sql_insert)
 
-        self.log.info('LoadFactOperator: Copying data into ' + self.rs_table_name + ' completed')
+        self.log.info('LoadRedShiftOperator: Copying data into ' + self.rs_table_name + ' completed')

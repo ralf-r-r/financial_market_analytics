@@ -1,9 +1,5 @@
 alembic==1.7.1
 anyio==3.3.1
-apache-airflow==2.1.0
-apache-airflow-providers-ftp==2.0.1
-apache-airflow-providers-imap==2.0.1
-apache-airflow-providers-sqlite==2.0.1
 apispec==3.3.2
 appdirs==1.4.4
 appnope @ file:///opt/concourse/worker/volumes/live/4f734db2-9ca8-4d8b-5b29-6ca15b4b4772/volume/appnope_1606859466979/work
@@ -143,24 +139,4 @@ SQLAlchemy-JSONField==1.0.0
 SQLAlchemy-Utils==0.37.8
 swagger-ui-bundle==0.0.8
 tabulate==0.8.9
-tenacity==6.2.0
-termcolor==1.1.0
-terminado==0.9.4
-testpath @ file:///tmp/build/80754af9/testpath_1624638946665/work
-text-unidecode==1.3
-tornado @ file:///opt/concourse/worker/volumes/live/d531d395-893c-4ca1-6a5f-717b318eb08c/volume/tornado_1606942307627/work
-tqdm==4.62.3
-traitlets @ file:///tmp/build/80754af9/traitlets_1636710298902/work
-typing-extensions @ file:///tmp/build/80754af9/typing_extensions_1631814937681/work
-unicodecsv==0.14.1
-urllib3==1.26.7
-w3lib==1.22.0
-wcwidth @ file:///Users/ktietz/demo/mc3/conda-bld/wcwidth_1629357192024/work
-webencodings==0.5.1
-websockets==9.1
-Werkzeug==1.0.1
-widgetsnbextension==3.5.1
-WTForms==2.3.3
-yahoo-fin==0.8.9.1
-yfinance==0.1.67
-zipp @ file:///tmp/build/80754af9/zipp_1633618647012/work
+

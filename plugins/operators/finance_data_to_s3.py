@@ -1,6 +1,6 @@
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
-from airflow.contrib.hooks.aws_hook import AwsHook
+from airflow.hooks.base_hook import BaseHook
 from typing import List
 import yfinance as yf
 import datetime
@@ -193,8 +193,8 @@ class FinanceDataToS3Operator(BaseOperator):
         :param s3_region: str, the region of the s3 bucket
         """
         super(FinanceDataToS3Operator, self).__init__(*args, **kwargs)
-
-        self.aws_credentials_id = aws_credentials_id
+        aws_conn = BaseHook.get_connection(aws_credentials_id)
+        self.aws_conn = aws_conn
         self.s3_bucket = s3_bucket
         self.s3_region = s3_region
         self.date = date
@@ -208,10 +208,6 @@ class FinanceDataToS3Operator(BaseOperator):
         year, month, day = start_date_str.split("-")
         quarter = month_to_quarter(int(month))
 
-        # get credentials
-        aws_hook = AwsHook(self.aws_credentials_id)
-        credentials = aws_hook.get_credentials()
-
         # get ticker data from pytickersymbols and upload data to s3
         self.log.info('starting to get stock ticker symbols from pytickersymbols')
         dfp_tickers = get_tickers()
@@ -219,8 +215,8 @@ class FinanceDataToS3Operator(BaseOperator):
         self.log.info('starting to upload stock tickers data to s3')
         s3_key_tickers = "tickers/" + year + "-" + quarter + "-tickers.csv"
         upload_df_to_S3(df=dfp_tickers,
-                        aws_access_key_id=credentials.access_key,
-                        aws_secret_access_key=credentials.secret_key,
+                        aws_access_key_id=self.aws_conn.login,
+                        aws_secret_access_key=self.aws_conn.password,
                         region=self.s3_region,
                         bucket=self.s3_bucket,
                         key=s3_key_tickers)
@@ -237,8 +233,8 @@ class FinanceDataToS3Operator(BaseOperator):
 
         s3_key_tickers = "spot_prices/" + year + "-" + quarter + "-" + "spot_prices.csv"
         upload_df_to_S3(df=df_price_volume,
-                        aws_access_key_id=credentials.access_key,
-                        aws_secret_access_key=credentials.secret_key,
+                        aws_access_key_id=self.aws_conn.login,
+                        aws_secret_access_key=self.aws_conn.password,
                         region=self.s3_region,
                         bucket=self.s3_bucket,
                         key=s3_key_tickers)

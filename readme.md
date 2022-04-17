@@ -1,4 +1,3 @@
-
 # Finance Data Project
 
 # 1. Goal of the Project
@@ -56,14 +55,13 @@ The value column is in percent. A value of 100 corresponds to the money supply o
 
 ### 2.4. Stock Fundamentals Data
 The stock fundamentals data was downloaded from https://data.nasdaq.com. The data is stored as a csv-file in the S3 bucket.
-
 The size of the dataset is 2.647.073 rows.
 
 ![image_1](img/fundamentals.png)
 
 # 3. Data Model and Pipeline
 
-### 3.1. Data Model:
+### 3.1. Data Model
 The final data model is as shown in the diagram. The different financial data tables can be joined via year, 
 quarter and stock ticker symbols.
 ![image_1](img/data_model.png)
@@ -77,6 +75,7 @@ The spot_prices table is the fact table of the data model. The **spot_prices** t
 - **quarter**: varchar(256), the quarter of the data point
 - **closing_price**: float, stock market closing prices in USD
 - **volume**: float, stock market trading volume in number of shares
+
 The PRIMARY KEY is a composite key of the following columns: symbol, year, month, day
 
 ### 3.3. tickers Table
@@ -85,6 +84,7 @@ The **tickers** table has the following columns:
 - **name**: varchar(256), name of the stock or company
 - **country**: varchar(256), the country of the headquarter
 - **indices**: varchar(256), the stock market indices that contain the stock
+
 The PRIMARY KEY is following columns: symbol
 
 ### 3.4. m3_money_supply Table
@@ -93,6 +93,7 @@ The **m3_money_supply** table has the following columns:
 - **year**: int, 
 - **quarter**: varchar(256), e.g. Q1
 - **value**: float, the m3 money supply in percent, 100% correspond to the money supply in the year 2015
+
 The PRIMARY KEY is a composite key of the following columns: country, year, quarter
 
 ### 3.5. fundamentals Table
@@ -111,7 +112,7 @@ The **fundamentals** table has the following columns:
 - **ebit**: float, in billion USD
 - **shareswa**: float, number of shares in billions
 - **shareswadil**: float, number of shares in billions
-- 
+
 The PRIMARY KEY is a composite key of the following columns: ticker, dimension, year, month
 
 ### 3.6. Data Pipeline
@@ -122,15 +123,27 @@ Finally the data is inserted into the target tables.
 # 4. Results
 
 # 5. Scenarios
+- **The data was increased by 100x:* The chosen technologies are capable to deal with such large amounts of data. 
+It might be helpfgul to run the DAG in this scenario more frequently e.g. every week and not every 3 months.
+- The pipelines would be run on a daily basis by 7 am every day: The pipeline can be run every day. The only necessary adjust is to change the schedule interval.
+- The database needed to be accessed by 100+ people: Redshift can be used by such amounts of people. The number of nodes needs to be adjusted.
 
 # 6. Airflow Project
+
 
 ## 6.1. Local installation for Airflow
 - **Installation**: A tutorial for  installing airflow locally can be found here:
 https://airflow-tutorial.readthedocs.io/en/latest/first-airflow.html
 
-- **Start the webserver**: ```airflow webserver -p 8080```
-- **Start the scheduler**: ```airflow scheduler```
+If you want to change your airflow home_dir: export AIRFLOW_HOME=<my_local_airflow_directory>
+
+If you are using apache airflow version 2.2.4, then airflow can be started in the terminal via: ```airflow standalone```
+
+This project uses python 3.8.8
+
+Airflow can be installed with pip:
+- ```pip install --upgrade pip==20.2.4```
+- ```pip install apache-airflow==2.2.4```
 
 ## 6.2. Configure AWS
 
@@ -139,24 +152,30 @@ https://airflow-tutorial.readthedocs.io/en/latest/first-airflow.html
 - **S3 and redshift permission:**: Provide the user with s3 and redshift access permissions
 
 ### 6.2.2. Configure the Redshift Cluster:
-Got to redshift and create a new cluster. You need additional configurations to be able to access the cluster from your local airflow installation:
+Go to redshift and create a new cluster. You need additional configurations to be able to access the cluster from your local airflow installation:
 - **Newtwork and security:** publicly accessible : enable
 - **Access credentials**: Set a username and a password. These are needed to configure the airflow redshift connection in the next step
 
 ## 6.3. Configure Airflow:
 
 ### 6.3.1. Configure AWS Access Credentials
-Admin -> connections -> aws_credentials -> enter the user credentials
+In the airflow UI navigate to Admin -> connections -> aws_credentials -> and enter the credentials of the aws user.
 
 ### 6.3.1. Configure AWS redshift connection
-
-Admin -> connections -> create:
-- Conn Id: redshift
+In the airflow UI navigate to Admin -> connections -> create and enter following details:
+- Conn Id: ```redshift```
 - Conn type: Postgres
 - Host: Copy passte from aws postgres endpoint. Remove port and schema.
-- Schema: dev
+- Schema: ```dev```
 - login: username as configured for aws redshift
 - Password: Passwort set for aws reshift
 
 ## 6.4. Other
 - **Check for load errors in redshift:** ```SELECT * FROM stl_load_errors;```
+
+
+
+
+awsuser
+P3141ddxxffrrttzz
+

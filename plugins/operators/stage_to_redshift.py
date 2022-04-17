@@ -1,8 +1,17 @@
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
-from airflow.contrib.hooks.aws_hook import AwsHook
+from airflow.hooks.base_hook import BaseHook
+from datetime import datetime, timedelta
 
+def subtract_months_from_date(dt, n):
+    date_object = dt
+
+    for k in range(0, n):
+        date_object = date_object.replace(day=1) - timedelta(1)
+        date_object = date_object.replace(day=1)
+
+    return date_object
 
 def month_to_quarter(month: int) -> str:
     """
@@ -27,6 +36,7 @@ class StageToRedshiftOperator(BaseOperator):
                  s3_key: str = '',
                  s3_region: str = 'eu-central-1',
                  use_date=True,
+                 truncate_table=False,
                  *args,
                  **kwargs):
         """
@@ -39,7 +49,8 @@ class StageToRedshiftOperator(BaseOperator):
         """
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
 
-        self.aws_credentials_id = aws_credentials_id
+        aws_conn = BaseHook.get_connection(aws_credentials_id)
+        self.aws_conn = aws_conn
         self.rs_conn_id = rs_conn_id
         self.rs_target_table = rs_target_table
         self.s3_bucket = s3_bucket
@@ -47,12 +58,16 @@ class StageToRedshiftOperator(BaseOperator):
         self.s3_region = s3_region
         self.date = date
         self.use_date = use_date
+        self.truncate_table = truncate_table
 
     def execute(self, context):
 
         # get year and quarter from date
-        date_str = self.date.format(**context)
-        year, month, day = date_str.split("-")
+        end_date_str = self.date.format(**context)
+        end_date_object = datetime.strptime(end_date_str, "%Y-%m-%d")
+        start_date_object = subtract_months_from_date(end_date_object, 3)
+        start_date_str = start_date_object.strftime("%Y-%m-%d")
+        year, month, day = start_date_str.split("-")
         quarter = month_to_quarter(int(month))
 
         # set bucket path
@@ -64,12 +79,11 @@ class StageToRedshiftOperator(BaseOperator):
         self.log.info('starting staging from ' + bucket_path + ' to ' + self.rs_target_table)
 
         redshift = PostgresHook(postgres_conn_id=self.rs_conn_id)
-        aws_hook = AwsHook(self.aws_credentials_id)
-        credentials = aws_hook.get_credentials()
 
         # - delete rows in the staging table
-        delete_rows = """DELETE {}""".format(self.rs_target_table)
-        redshift.run(delete_rows)
+        if self.truncate_table:
+            delete_rows = """DELETE {}""".format(self.rs_target_table)
+            redshift.run(delete_rows)
 
         # - load new data from s3 bucket into the staging table
         staging_copy = """
@@ -87,8 +101,8 @@ class StageToRedshiftOperator(BaseOperator):
 
         staging_copy_formatted = staging_copy.format(self.rs_target_table,
                                                      bucket_path,
-                                                     credentials.access_key,
-                                                     credentials.secret_key,
+                                                     self.aws_conn.login,
+                                                     self.aws_conn.password,
                                                      self.s3_region)
 
         redshift.run(staging_copy_formatted)
