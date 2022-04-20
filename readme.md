@@ -135,10 +135,10 @@ However, the correlation between the price to earnings ratio and the money suppl
 ![image_1](img/sp500_price_vs_money_supply.png)
 
 # 5. Scenarios
-- **The data was increased by 100x:* The chosen technologies are capable to deal with such large amounts of data. 
+- **The data was increased by 100x:** The chosen technologies are capable to deal with such large amounts of data. 
 It might be helpfgul to run the DAG in this scenario more frequently e.g. every week and not every 3 months.
-- The pipelines would be run on a daily basis by 7 am every day: The pipeline can be run every day. The only necessary adjust is to change the schedule interval.
-- The database needed to be accessed by 100+ people: Redshift can be used by such amounts of people. The number of nodes needs to be adjusted.
+- **The pipelines would be run on a daily basis by 7 am every day:** The pipeline can be run every day. The only necessary adjust is to change the schedule interval.
+- **The database needed to be accessed by 100+ people:** Redshift can be used by such amounts of people. The number of nodes needs to be adjusted.
 
 # 6. Airflow Project
 
