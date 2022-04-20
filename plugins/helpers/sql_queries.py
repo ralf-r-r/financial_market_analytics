@@ -82,8 +82,7 @@ class SqlQueries:
     AND fundamentals.year = stage.year
     AND fundamentals.month = stage.month
     AND fundamentals.day = stage.day
-    WHERE fundamentals.marketcap IS NULL
-  	AND fundamentals.netinc IS NULL;
+    WHERE fundamentals.dimension IS NULL;
     """)
 
     tickers_insert_old = ("""

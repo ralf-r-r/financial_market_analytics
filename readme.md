@@ -122,6 +122,18 @@ Finally the data is inserted into the target tables.
 
 # 4. Results
 
+The financial data shows a strong correlation between stock price and central bank money supply. 
+However, the correlation between the price to earnings ratio and the money supply is weak.
+
+## 4.1 Price to Earnings Ratio over Time
+![image_1](img/pe_ratio_over_time.png)
+
+## 4.2 Price to Earnings Ratio vs Money Supply
+![image_1](img/pe_ratio_vs_money_supply.png)
+
+## 4.2 S&P 500 Price vs Money Supply
+![image_1](img/sp500_price_vs_money_supply.png)
+
 # 5. Scenarios
 - **The data was increased by 100x:* The chosen technologies are capable to deal with such large amounts of data. 
 It might be helpfgul to run the DAG in this scenario more frequently e.g. every week and not every 3 months.
@@ -130,8 +142,13 @@ It might be helpfgul to run the DAG in this scenario more frequently e.g. every 
 
 # 6. Airflow Project
 
+## 6.1. Porject Structure
+- **plugins/helpers/sql_queries.py**: Contains the SQL statements for inserting values into the staging, fact and dimension tables
+- **plugins/helpers/data_quality.py**: Cotains the definition of the data quality checks to be performed
+- **operators**: Python code for the different custom operators such as staging the data, filling the data warehouse, and running checks on the data as the final step
+- **create_tables.sql**: SQL statements to create the tables on AWS redshift
 
-## 6.1. Local installation for Airflow
+## 6.2. Local installation for Airflow
 - **Installation**: A tutorial for  installing airflow locally can be found here:
 https://airflow-tutorial.readthedocs.io/en/latest/first-airflow.html
 
@@ -145,23 +162,23 @@ Airflow can be installed with pip:
 - ```pip install --upgrade pip==20.2.4```
 - ```pip install apache-airflow==2.2.4```
 
-## 6.2. Configure AWS
+## 6.3. Configure AWS
 
-### 6.2.1. Configure AWS Permissions:
+### 6.3.1. Configure AWS Permissions:
 - **create a new user**: IAM -> create a user -> programmatic access -> store the credentials. These are needed to configure airflow later on.
 - **S3 and redshift permission:**: Provide the user with s3 and redshift access permissions
 
-### 6.2.2. Configure the Redshift Cluster:
+### 6.3.2. Configure the Redshift Cluster:
 Go to redshift and create a new cluster. You need additional configurations to be able to access the cluster from your local airflow installation:
 - **Newtwork and security:** publicly accessible : enable
 - **Access credentials**: Set a username and a password. These are needed to configure the airflow redshift connection in the next step
 
-## 6.3. Configure Airflow:
+## 6.4. Configure Airflow:
 
-### 6.3.1. Configure AWS Access Credentials
+### 6.4.1. Configure AWS Access Credentials
 In the airflow UI navigate to Admin -> connections -> aws_credentials -> and enter the credentials of the aws user.
 
-### 6.3.1. Configure AWS redshift connection
+### 6.4.1. Configure AWS redshift connection
 In the airflow UI navigate to Admin -> connections -> create and enter following details:
 - Conn Id: ```redshift```
 - Conn type: Postgres
@@ -169,13 +186,4 @@ In the airflow UI navigate to Admin -> connections -> create and enter following
 - Schema: ```dev```
 - login: username as configured for aws redshift
 - Password: Passwort set for aws reshift
-
-## 6.4. Other
-- **Check for load errors in redshift:** ```SELECT * FROM stl_load_errors;```
-
-
-
-
-awsuser
-P3141ddxxffrrttzz
 
