@@ -148,8 +148,8 @@ It might be helpfgul to run the DAG in this scenario more frequently e.g. every 
 - **operators**: Python code for the different custom operators such as staging the data, filling the data warehouse, and running checks on the data as the final step
 - **create_tables.sql**: SQL statements to create the tables on AWS redshift
 
-## 6.2. Local installation for Airflow
-- **Installation**: A tutorial for  installing airflow locally can be found here:
+## 6.2. Local installation for Airflow 
+A tutorial for  installing airflow locally can be found here:
 https://airflow-tutorial.readthedocs.io/en/latest/first-airflow.html
 
 If you want to change your airflow home_dir: export AIRFLOW_HOME=<my_local_airflow_directory>
